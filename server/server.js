@@ -76,8 +76,8 @@ app.listen(PORT, () => {
   console.log('  ╔══════════════════════════════════════════════╗');
   console.log('  ║   🏥 RAKSHAK Healthcare API Server          ║');
   console.log('  ╠══════════════════════════════════════════════╣');
-  console.log(`  ║   Running on: http://localhost:${PORT}           ║`);
-  console.log('  ║   Health:     http://localhost:5000/api/health║');
+  console.log(`  ║   Running on: http://localhost:${PORT}            ║`);
+  console.log(`  ║   Health:     http://localhost:${PORT}/api/health    ║`);
   console.log('  ║   Status:     ✅ Ready                       ║');
   console.log('  ╚══════════════════════════════════════════════╝');
   console.log('');

@@ -13,19 +13,25 @@ export default function PatientRegister() {
 
   const update = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     if (!form.name || !form.phone || !form.password) { setError('Name, phone and password are required'); return; }
     if (form.password !== form.confirmPassword) { setError('Passwords do not match'); return; }
     if (form.phone.length < 10) { setError('Please enter a valid 10-digit mobile number'); return; }
     setLoading(true);
-    setTimeout(() => {
-      const result = registerPatient(form);
-      if (result.success) { toast.success('Registration successful!'); navigate('/patient/dashboard'); }
-      else setError(result.error);
-      setLoading(false);
-    }, 600);
+    try {
+      const result = await registerPatient(form);
+      if (result && result.success) {
+        toast.success('Registration successful!');
+        navigate('/patient/dashboard');
+      } else {
+        setError(result?.error || 'Registration failed. Please try again.');
+      }
+    } catch (err) {
+      setError(err.message || 'Registration failed. Please try again.');
+    }
+    setLoading(false);
   };
 
   return (

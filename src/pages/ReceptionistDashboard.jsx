@@ -111,11 +111,11 @@ function RegisterPatient({ onDone }) {
   const { registerPatient } = useApp();
   const [form, setForm] = useState({ name: '', phone: '', email: '', age: '', gender: 'Male', bloodGroup: 'O+', address: '', emergencyContact: '', password: 'patient123' });
   const update = e => setForm({ ...form, [e.target.name]: e.target.value });
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!form.name || !form.phone) { toast.error('Name and phone required'); return; }
-    const result = registerPatient(form);
-    if (result.success) { toast.success('Patient registered!'); onDone(); }
-    else toast.error(result.error);
+    const result = await registerPatient(form);
+    if (result && result.success) { toast.success('Patient registered!'); onDone(); }
+    else toast.error(result?.error || 'Registration failed');
   };
   return (
     <div className="max-w-2xl mx-auto">

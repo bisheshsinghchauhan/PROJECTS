@@ -12,21 +12,23 @@ export default function PatientLogin() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     if (!phone || !password) { setError('Please fill in all fields'); return; }
     setLoading(true);
-    setTimeout(() => {
-      const result = loginPatient(phone, password);
-      if (result.success) {
+    try {
+      const result = await loginPatient(phone, password);
+      if (result && result.success) {
         toast.success('Welcome back!');
         navigate('/patient/dashboard');
       } else {
-        setError(result.error);
+        setError(result?.error || 'Invalid phone number or password');
       }
-      setLoading(false);
-    }, 600);
+    } catch (err) {
+      setError(err.message || 'Login failed. Please try again.');
+    }
+    setLoading(false);
   };
 
   return (

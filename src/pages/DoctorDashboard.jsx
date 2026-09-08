@@ -3,12 +3,12 @@ import { Navigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import DashboardLayout from '../components/DashboardLayout';
 import CameraCapture from '../components/CameraCapture';
-import { Phone, Search, FileText, Camera, Stethoscope, Activity, Clock, User, PhoneCall, ShieldAlert, Users, FileImage } from 'lucide-react';
+import { Phone, Search, FileText, Camera, Stethoscope, Activity, Clock, User, PhoneCall, ShieldAlert, Users, FileImage, CheckCircle2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { TRIAGE_CATEGORIES, REPORT_TYPES } from '../data/mockData';
 
 export default function DoctorDashboard() {
-  const { currentUser, userRole, getPatientByPhone, queue, updatePatientReports, patients } = useApp();
+  const { currentUser, userRole, getPatientByPhone, queue, updatePatientReports, patients, updateQueueEntry, removeFromQueue } = useApp();
   const [view, setView] = useState('queue');
   const [showCamera, setShowCamera] = useState(false);
   const [activePatient, setActivePatient] = useState(null);
@@ -48,9 +48,9 @@ export default function DoctorDashboard() {
         <TabBtn active={view === 'patient'} onClick={() => setView('patient')} icon={<User className="w-4 h-4" />} label="Patient View" />
       </div>
 
-      {view === 'queue' && <QueueView queue={queue} onCall={openPatient} />}
+      {view === 'queue' && <QueueView queue={queue} onCall={openPatient} onComplete={id => { updateQueueEntry(id, { status: 'completed' }); toast.success('Consultation completed'); }} onRemove={id => { removeFromQueue(id); toast.success('Patient removed from queue'); }} />}
       {view === 'search' && <SearchPatient onFound={openPatient} patients={patients} />}
-      {view === 'triage' && <TriageView patients={patients} onSelect={openPatient} />}
+      {view === 'triage' && <TriageView patients={patients} queue={queue} onSelect={openPatient} />}
       {view === 'patient' && activePatient && (
         <PatientView patient={activePatient} onUpload={() => setShowCamera(true)} reportData={reportData} setReportData={setReportData} onBack={() => setView('queue')} />
       )}
@@ -67,7 +67,7 @@ function TabBtn({ active, onClick, icon, label }) {
   return <button onClick={onClick} className={`nav-link ${active ? 'nav-link-active' : 'nav-link-inactive'}`}>{icon}{label}</button>;
 }
 
-function QueueView({ queue, onCall }) {
+function QueueView({ queue, onCall, onComplete, onRemove }) {
   const waiting = queue.filter(q => q.status === 'waiting');
   if (waiting.length === 0) return <div className="bg-white rounded-2xl p-8 text-center border border-gray-100 text-gray-400">No patients in queue</div>;
   return (
@@ -87,6 +87,8 @@ function QueueView({ queue, onCall }) {
           <div className="flex items-center gap-3">
             <TriageBadge level={q.triageLevel} />
             <button onClick={() => onCall(q.patientId)} className="btn-blue text-sm flex items-center gap-2 py-2 px-4"><PhoneCall className="w-4 h-4" /> View Patient</button>
+            <button title="Mark complete" onClick={() => onComplete(q.id)} className="btn-green text-sm py-2 px-3"><CheckCircle2 className="w-4 h-4" /> Complete</button>
+            <button title="Remove from queue" onClick={() => onRemove(q.id)} className="bg-red-50 text-red-600 px-3 py-2 rounded-lg text-sm font-semibold">×</button>
           </div>
         </div>
       ))}
@@ -128,7 +130,9 @@ function SearchPatient({ onFound, patients }) {
   );
 }
 
-function TriageView({ patients, onSelect }) {
+function TriageView({ patients, queue, onSelect }) {
+  const { updateQueueEntry } = useApp();
+  const getQueueEntry = (patientId) => queue.find(q => q.patientId === patientId && q.status !== 'completed');
   return (
     <div>
       <h2 className="section-title mb-1">Triage Assistant</h2>
@@ -145,18 +149,27 @@ function TriageView({ patients, onSelect }) {
       <div className="bg-white rounded-2xl border border-gray-100 p-6">
         <h3 className="font-bold text-gray-900 mb-4">Assign Triage Level</h3>
         <div className="space-y-2">
-          {patients.map(p => (
-            <div key={p.id} className="flex items-center justify-between bg-gray-50 rounded-xl p-3">
-              <div><p className="font-semibold text-gray-900 text-sm">{p.name}</p><p className="text-xs text-gray-500">{p.phone}</p></div>
-              <div className="flex items-center gap-2">
-                <select className="input-field text-xs py-2" defaultValue="">
-                  <option value="">Select Level</option>
-                  {TRIAGE_CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}
-                </select>
-                <button onClick={() => onSelect(p.phone)} className="btn-secondary text-xs py-2">View</button>
+          {patients.map(p => {
+            const entry = getQueueEntry(p.id);
+            return (
+              <div key={p.id} className="flex items-center justify-between bg-gray-50 rounded-xl p-3">
+                <div><p className="font-semibold text-gray-900 text-sm">{p.name}</p><p className="text-xs text-gray-500">{p.phone}</p></div>
+                <div className="flex items-center gap-2">
+                  {entry ? (
+                    <select
+                      className="input-field text-xs py-2"
+                      value={entry.triageLevel || ''}
+                      onChange={e => { updateQueueEntry(entry.id, { triageLevel: Number(e.target.value) }); toast.success(`Triage level updated for ${p.name}`); }}
+                    >
+                      <option value="">Select Level</option>
+                      {TRIAGE_CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}
+                    </select>
+                  ) : <span className="text-xs text-gray-400 bg-white border border-gray-200 rounded-lg px-3 py-2">Not in queue</span>}
+                  <button onClick={() => onSelect(p.phone)} className="btn-secondary text-xs py-2">View</button>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>

@@ -22,21 +22,23 @@ export default function StaffLogin() {
   const [loading, setLoading] = useState(false);
   const [showHint, setShowHint] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     if (!code) { setError('Please enter the access code'); return; }
     setLoading(true);
-    setTimeout(() => {
-      const result = loginStaff(code, role);
-      if (result.success) {
+    try {
+      const result = await loginStaff(code, role);
+      if (result && result.success) {
         toast.success(`Welcome ${config.title}!`);
         navigate(`/${role}/dashboard`);
       } else {
-        setError(result.error);
+        setError(result?.error || 'Invalid access code');
       }
-      setLoading(false);
-    }, 600);
+    } catch (err) {
+      setError(err.message || 'Login failed. Please try again.');
+    }
+    setLoading(false);
   };
 
   const Icon = config.icon;
